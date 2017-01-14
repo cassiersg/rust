@@ -337,12 +337,15 @@ impl<'a> Resolver<'a> {
             };
         }
 
-        let binding = match binding {
-            Some(binding) => MacroBinding::Legacy(binding),
-            None => match self.builtin_macros.get(&name).cloned() {
-                Some(binding) => MacroBinding::Modern(binding),
-                None => return None,
-            },
+        let binding = if let Some(binding) = binding {
+            MacroBinding::Legacy(binding)
+        } else if let Some(binding) = self.builtin_macros.get(&name).cloned() {
+            if !self.use_extern_macros {
+                self.record_use(Ident::with_empty_ctxt(name), MacroNS, binding, DUMMY_SP);
+            }
+            MacroBinding::Modern(binding)
+        } else {
+            return None;
         };
 
         if !self.use_extern_macros {
@@ -373,6 +376,10 @@ impl<'a> Resolver<'a> {
             let resolution = self.resolve_lexical_macro_path_segment(ident, MacroNS, Some(span));
             let (legacy_resolution, resolution) = match (legacy_resolution, resolution) {
                 (Some(legacy_resolution), Ok(resolution)) => (legacy_resolution, resolution),
+                (Some(MacroBinding::Modern(binding)), Err(..)) => {
+                    self.record_use(ident, MacroNS, binding, span);
+                    continue
+                }
                 _ => continue,
             };
             let (legacy_span, participle) = match legacy_resolution {
