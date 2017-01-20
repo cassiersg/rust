@@ -38,12 +38,10 @@
 #![feature(rustc_private)]
 #![feature(set_stdio)]
 #![feature(staged_api)]
-#![feature(panic_unwind)]
 
 extern crate getopts;
 extern crate term;
 extern crate libc;
-extern crate panic_unwind;
 
 pub use self::TestFn::*;
 pub use self::ColorConfig::*;
